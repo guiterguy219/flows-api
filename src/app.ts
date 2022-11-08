@@ -30,7 +30,7 @@ const initialize = () => {
   const httpServer = createServer(app);
   const io = new Server(httpServer, {
     cors: corsOptions,
-    path: process.env.BASE_PATH ?? '/',
+    path: node_path.join(process.env.BASE_PATH ?? '/', '/socket-io'),
   });
 
   // MIDDLEWARES
