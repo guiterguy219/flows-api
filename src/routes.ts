@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { requiredScopes } from "express-oauth2-jwt-bearer";
-import { createAccount, getAccountById, getAccounts, getBalances, getInflowsForAccount, getOutlowsForAccount } from "./controllers/accounts-controller";
+import { createAccount, deleteAccount, getAccountById, getAccounts, getBalances, getInflowsForAccount, getOutlowsForAccount } from "./controllers/accounts-controller";
 import { createFlow, getFlows } from "./controllers/flows-controller";
 
 export interface Route {
@@ -43,6 +43,12 @@ const routes: Route[] = [
         path: '/accounts/:accountId',
         action: getAccountById,
         middlewares: [checkRead]
+    },
+    {
+        method: 'delete',
+        path: '/accounts/:accountId',
+        action: deleteAccount,
+        middlewares: [checkWrite]
     },
 
     {

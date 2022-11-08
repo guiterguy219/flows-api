@@ -47,6 +47,15 @@ export const createAccount = async (req: Request, res: Response) => {
     res.send(savedAccount);
 }
 
+export const deleteAccount = async (req: Request, res: Response) => {
+    const userId = getUserId(req);
+    if (!userId) { return badRequest(res); }
+
+    const accountId = req.params['accountId'];
+    const deletion = await accountRepository.delete({ id: accountId, userId });
+    res.send(deletion);
+}
+
 export const getAccountById = async (req: Request, res: Response) => {
     const userId = getUserId(req);
     if (!userId) { return badRequest(res); }
