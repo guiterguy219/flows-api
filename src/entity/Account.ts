@@ -97,8 +97,8 @@ export class Account extends UserResource {
             } else {
                 this.accruedBalance = roundAmount(this.actualBalance
                     + [
-                        ...this.inflows,
-                        ...this.outflows.map(f => ({...f, amount: -f.amount}))
+                        ...(this.inflows || []),
+                        ...(this.outflows || []).map(f => ({...f, amount: -f.amount}))
                     ]
                         .filter((f) => isDue(f.dateDue) && !f.paid)
                         .reduce((acc, f) => acc + f.amount, 0))
