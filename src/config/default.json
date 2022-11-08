@@ -1,0 +1,12 @@
+{
+    "database": {
+        "type": "postgres",
+        "host": "localhost",
+        "port": 5432,
+        "username": "root",
+        "password": "asdf",
+        "database": "flowsapi",
+        "synchronize": true,
+        "logging": true
+    }
+}
