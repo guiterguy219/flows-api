@@ -5,8 +5,6 @@
         "port": "DB_PORT",
         "username": "DB_USERNAME",
         "password": "DB_PASSWORD",
-        "database": "DB_DATABASE",
-        "synchronize": true,
-        "logging": true
+        "database": "DB_DATABASE"
     }
 }
