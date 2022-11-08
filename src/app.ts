@@ -30,6 +30,7 @@ const initialize = () => {
   const httpServer = createServer(app);
   const io = new Server(httpServer, {
     cors: corsOptions,
+    path: process.env.BASE_PATH ?? '/',
   });
 
   // MIDDLEWARES
@@ -52,19 +53,20 @@ const initialize = () => {
     })
   });
 
-  io.on('connection', async (socket: Socket) => {
-    const userId = getUserId(socket)!;
-    socket.join(userId);
-    
-    registerAccountHandler(io, socket);
-    registerFlowHandler(io, socket);
+  io
+    .on('connection', async (socket: Socket) => {
+      const userId = getUserId(socket)!;
+      socket.join(userId);
+      
+      registerAccountHandler(io, socket);
+      registerFlowHandler(io, socket);
 
-    socket.on('disconnect', () => {
-      getSubscriber().then((sub) => {
-        sub.unsubscribe();
+      socket.on('disconnect', () => {
+        getSubscriber().then((sub) => {
+          sub.unsubscribe();
+        });
       });
     });
-  });
   
   httpServer.listen(port, () => {
     console.log(`flows-api listening on port ${port}`)
