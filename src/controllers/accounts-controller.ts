@@ -75,7 +75,10 @@ export const getInflowsForAccount = async (req: Request, res: Response) => {
             userId
         },
         relations: {
-            inflows: true,
+            outflows: {
+                toAccount: true,
+                fromAccount: true,
+            }
         }
     });
     res.send(account?.inflows);
