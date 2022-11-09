@@ -75,13 +75,17 @@ export const getInflowsForAccount = async (req: Request, res: Response) => {
             userId
         },
         relations: {
-            outflows: {
+            inflows: {
                 toAccount: true,
                 fromAccount: true,
             }
         }
     });
-    res.send(account?.inflows);
+    if (account) {
+        res.send(account.inflows);
+    } else {
+        res.status(404).send();
+    }
 }
 
 export const getOutlowsForAccount = async (req: Request, res: Response) => {
@@ -101,7 +105,11 @@ export const getOutlowsForAccount = async (req: Request, res: Response) => {
         }
     });
 
-    res.send(account?.outflows);
+    if (account) {
+        res.send(account.outflows);
+    } else {
+        res.status(404).send();
+    }
 }
 
 export const getBalances = async (req: Request, res: Response) => {
