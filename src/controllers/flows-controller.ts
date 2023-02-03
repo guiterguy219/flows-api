@@ -63,7 +63,7 @@ export const getInflowsForAccount = async (req: Request, res: Response) => {
                 id: req.params['accountId'],
             },
             userId,
-            dateDue: MoreThan(dayjs(getFirstQParam(req, 'startDate')).subtract(1, "days").toDate()),
+            // dateDue: MoreThan(dayjs(getFirstQParam(req, 'startDate')).subtract(1, "days").toDate()),
         },
         relations: {
             toAccount: true,
@@ -83,7 +83,7 @@ export const getOutlowsForAccount = async (req: Request, res: Response) => {
                 id: req.params['accountId'],
             },
             userId,
-            dateDue: MoreThan(dayjs(getFirstQParam(req, 'startDate')).subtract(1, "days").toDate()),
+            // dateDue: MoreThan(dayjs(getFirstQParam(req, 'startDate')).subtract(1, "days").toDate()),
         },
         relations: {
             toAccount: true,
