@@ -1,4 +1,4 @@
-import { AfterInsert, AfterUpdate, Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { AfterInsert, AfterRemove, AfterUpdate, BeforeRemove, Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { getRedisClient } from "../clients/redis";
 import { Account } from "./Account";
 import { UserResource } from "./UserResource";
@@ -47,9 +47,7 @@ export class Flow extends UserResource {
     @OneToMany(() => Flow, (flow) => flow.parentFlow)
     payments: Flow[];
 
-    @AfterInsert()
-    @AfterUpdate()
-    sendEvent = async () => {
+    invalidateCache = async () => {
         const redis = await getRedisClient();
 
         if (!this.toAccount || !this.fromAccount) {
@@ -73,7 +71,24 @@ export class Flow extends UserResource {
         if (keysToDelete.length > 0) {
             await redis.del(keysToDelete);
         }
+    }
 
+    @AfterInsert()
+    @AfterUpdate()
+    sendEvent = async () => {
+        const redis = await getRedisClient();
+
+        await this.invalidateCache();
+        
         await redis.publish(`${this.userId}:flow:save`, this.id);
+    }
+
+    @BeforeRemove()
+    sendDeleteEvent = async () => {
+        const redis = await getRedisClient();
+
+        await this.invalidateCache();
+
+        await redis.publish(`${this.userId}:flow:delete`, this.id);
     }
 }

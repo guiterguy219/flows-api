@@ -5,7 +5,7 @@ import { AppDataSource } from "../data-source";
 import { Account, AccountType } from "../entity/Account";
 import { Flow } from "../entity/Flow";
 import { BalanceByDate } from "../entity/interfaces";
-import { badRequest, getUserId } from "./controller-utils";
+import { badRequest, getUserId, notFound } from "./controller-utils";
 
 const accountRepository = AppDataSource.getRepository(Account);
 
@@ -24,10 +24,10 @@ export const getAccounts = async (req: Request, res: Response) => {
     });
 
     let error = false;
-    await Promise.all(accounts.map((a) => a.enrich())).catch((e) => {
-        console.error(e);
-        error = true;
-    });
+    // await Promise.all(accounts.map((a) => a.enrich())).catch((e) => {
+    //     console.error(e);
+    //     error = true;
+    // });
 
     if (error) {
         res.status(500).send();
@@ -49,11 +49,21 @@ export const createAccount = async (req: Request, res: Response) => {
 
 export const deleteAccount = async (req: Request, res: Response) => {
     const userId = getUserId(req);
-    if (!userId) { return badRequest(res); }
+    const { accountId } = req.params;
+    
+    if (!userId || !accountId) { return badRequest(res); }
 
-    const accountId = req.params['accountId'];
-    const deletion = await accountRepository.delete({ id: accountId, userId });
-    res.send(deletion);
+    const account = await accountRepository
+        .createQueryBuilder('account')
+        .addSelect('account.userId')
+        .where('account.id = :accountId', { accountId })
+        .andWhere('account.userId = :userId', { userId })
+        .getOne();
+
+    if (!account) { return notFound(res); }
+
+    await accountRepository.remove(account);
+    res.sendStatus(204);
 }
 
 export const getAccountById = async (req: Request, res: Response) => {
@@ -62,54 +72,7 @@ export const getAccountById = async (req: Request, res: Response) => {
 
     const accountId = req.params['accountId'];
     const account = await accountRepository.findOneBy({ id: accountId, userId });
-    res.send(await account?.enrich());
-}
-
-export const getInflowsForAccount = async (req: Request, res: Response) => {
-    const userId = getUserId(req);
-    if (!userId) { return badRequest(res); }
-
-    const account = await accountRepository.findOne({
-        where: {
-            id: req.params['accountId'],
-            userId
-        },
-        relations: {
-            inflows: {
-                toAccount: true,
-                fromAccount: true,
-            }
-        }
-    });
-    if (account) {
-        res.send(account.inflows);
-    } else {
-        res.status(404).send();
-    }
-}
-
-export const getOutlowsForAccount = async (req: Request, res: Response) => {
-    const userId = getUserId(req);
-    if (!userId) { return badRequest(res); }
-
-    const account = await accountRepository.findOne({
-        where: {
-            id: req.params['accountId'],
-            userId
-        },
-        relations: {
-            outflows: {
-                toAccount: true,
-                fromAccount: true,
-            }
-        }
-    });
-
-    if (account) {
-        res.send(account.outflows);
-    } else {
-        res.status(404).send();
-    }
+    res.send(account);
 }
 
 export const getBalances = async (req: Request, res: Response) => {

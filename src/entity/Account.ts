@@ -1,4 +1,4 @@
-import { AfterInsert, AfterLoad, AfterUpdate, Column, Entity, OneToMany } from "typeorm";
+import { AfterInsert, AfterLoad, AfterRemove, AfterUpdate, Column, Entity, OneToMany } from "typeorm";
 import { Flow } from "./Flow";
 import { UserResource } from "./UserResource";
 import { getPublisher, getRedisClient } from "../clients/redis";
@@ -109,9 +109,7 @@ export class Account extends UserResource {
         return this;
     }
 
-    @AfterInsert()
-    @AfterUpdate()
-    sendEvent = async () => {
+    invalidateCache = async () => {
         const redis = await getRedisClient();
 
         const accountCacheIterator = redis.scanIterator({
@@ -124,7 +122,24 @@ export class Account extends UserResource {
         if (keysToDelete.length > 0) {
             await redis.del(keysToDelete);
         }
+    }
+
+    @AfterInsert()
+    @AfterUpdate()
+    sendEvent = async () => {
+        const redis = await getRedisClient();
+
+        this.invalidateCache();
         
         await redis.publish(`${this.userId}:account:save`, this.id);
+    }
+
+    @AfterRemove()
+    sendRemoveEvent = async () => {
+        const redis = await getRedisClient();
+
+        this.invalidateCache();
+        
+        await redis.publish(`${this.userId}:account:delete`, this.id);
     }
 }

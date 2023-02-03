@@ -7,6 +7,7 @@ import { Server, Socket } from "socket.io";
 
 const accountSocketEvents = [
     'save',
+    'delete',
 ]
 
 export const registerAccountHandler = async (io: Server, socket: Socket) => {

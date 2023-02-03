@@ -4,6 +4,7 @@ import { Server, Socket } from "socket.io";
 
 const flowSocketEvents = [
     'save',
+    'delete',
 ]
 
 export const registerFlowHandler = async (io: Server, socket: Socket) => {
