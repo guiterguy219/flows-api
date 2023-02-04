@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import { requiredScopes } from "express-oauth2-jwt-bearer";
 import { createAccount, deleteAccount, getAccountById, getAccounts, getBalances } from "./controllers/accounts-controller";
-import { createFlow, deleteFlow, getFlows, getInflowsForAccount, getOutlowsForAccount } from "./controllers/flows-controller";
+import { createFlow, deleteFlow, getFlows, getFlowsForAccount, getInflowsForAccount, getOutlowsForAccount } from "./controllers/flows-controller";
+import { createLinkToken } from "./controllers/plaid-controller";
 
 export interface Route {
     method: 'get' | 'post' | 'put' | 'delete';
@@ -56,27 +57,38 @@ const routes: Route[] = [
         action: deleteAccount,
         middlewares: [checkWrite]
     },
-
     {
         method: 'get',
         path: '/accounts/:accountId/inflows',
         action: getInflowsForAccount,
         middlewares: [checkRead]
     },
-
     {
         method: 'get',
         path: '/accounts/:accountId/outflows',
         action: getOutlowsForAccount,
         middlewares: [checkRead]
     },
-
+    {
+        method: 'get',
+        path: '/accounts/:accountId/flows',
+        action: getFlowsForAccount,
+        middlewares: [checkRead]
+    },
     {
         method: 'get',
         path: '/accounts/:accountId/balances',
         action: getBalances,
         middlewares: [checkRead]
     },
+
+    // --- PLAID ---
+    {
+        method: 'post',
+        path: '/create-link-token',
+        action: createLinkToken,
+        middlewares: [checkWrite]
+    }
 ]
 
 export default routes;

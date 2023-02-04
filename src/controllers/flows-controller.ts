@@ -1,10 +1,11 @@
 import dayjs from "dayjs";
 import { Request, Response } from "express";
+import { access } from "fs";
 import { MoreThan } from "typeorm";
 import { getRedisClient } from "../clients/redis";
 import { AppDataSource } from "../data-source";
 import { Flow } from "../entity/Flow";
-import { badRequest, getFirstQParam, getUserId, notFound } from "./controller-utils";
+import { asArray, badRequest, getFirstQParam, getUserId, notFound } from "./controller-utils";
 
 const flowsRepository = AppDataSource.getRepository(Flow);
 
@@ -54,42 +55,63 @@ export const deleteFlow = async (req: Request, res: Response) => {
 }
 
 export const getInflowsForAccount = async (req: Request, res: Response) => {
-    const userId = getUserId(req);
-    if (!userId) { return badRequest(res); }
-
-    const inflows = await flowsRepository.find({
-        where: {
-            toAccount: {
-                id: req.params['accountId'],
-            },
-            userId,
-            // dateDue: MoreThan(dayjs(getFirstQParam(req, 'startDate')).subtract(1, "days").toDate()),
-        },
-        relations: {
-            toAccount: true,
-            fromAccount: true,
-        }
-    });
-    res.send(inflows);
+    return doGetFlowsForAccount(req, res, true, false);
 }
 
 export const getOutlowsForAccount = async (req: Request, res: Response) => {
-    const userId = getUserId(req);
-    if (!userId) { return badRequest(res); }   
+    return doGetFlowsForAccount(req, res, false, true);
+}
 
-    const outflows = await flowsRepository.find({
-        where: {
-            fromAccount: {
-                id: req.params['accountId'],
+export const getFlowsForAccount = async (req: Request, res: Response) => {
+    return doGetFlowsForAccount(req, res, true, true);
+}
+
+const doGetFlowsForAccount = async (req: Request, res: Response, inflows = true, outflows = true) => {
+    const userId = getUserId(req);
+    const accountId = req.params.accountId;
+    if (!userId || !accountId) { return badRequest(res); }
+    
+    const sorts: Record<string, string> = (asArray(req.query.sort) || []).reduce((acc, sort) => {
+        const [field, direction] = sort.split(':');
+        return {
+            ...acc,
+            [field]: direction,
+        };
+    }, {});
+
+    const whereBase = {
+        userId,
+        // dateDue: MoreThan(dayjs(getFirstQParam(req, 'startDate')).subtract(1, "days").toDate()),
+    }
+
+    const whereClause = []
+
+    if (inflows) {
+        whereClause.push({
+            ...whereBase,
+            toAccount: {
+                id: accountId,
             },
-            userId,
-            // dateDue: MoreThan(dayjs(getFirstQParam(req, 'startDate')).subtract(1, "days").toDate()),
-        },
+        })
+    }
+
+    if (outflows) {
+        whereClause.push({
+            ...whereBase,
+            fromAccount: {
+                id: accountId,
+            },
+        })
+    }
+
+    const flows = await flowsRepository.find({
+        where: whereClause,
         relations: {
             toAccount: true,
             fromAccount: true,
-        }
+        },
+        order: sorts,
     });
 
-    res.send(outflows);
+    res.send(flows);
 }

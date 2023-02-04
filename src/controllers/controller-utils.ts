@@ -24,3 +24,10 @@ export const getFirstQParam = (req: Request, key: string): string | undefined =>
     }
     return val?.toString();
 }
+
+export const asArray = (val: any): any[] => {
+    if (val instanceof Array) {
+        return val;
+    }
+    return [val];
+}
