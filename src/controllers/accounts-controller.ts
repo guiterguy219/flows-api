@@ -20,6 +20,9 @@ export const getAccounts = async (req: Request, res: Response) => {
         relations: {
             inflows: true,
             outflows: true
+        },
+        order: {
+            createdOn: 'ASC'
         }
     });
 
@@ -43,7 +46,7 @@ export const createAccount = async (req: Request, res: Response) => {
 
     const newAccount = accountRepository.create({ ...req.body, userId } as Account);
     const savedAccount = await accountRepository.save(newAccount);
-    await savedAccount.enrich();
+    // await savedAccount.enrich();
     res.send(savedAccount);
 }
 

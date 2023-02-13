@@ -1,6 +1,8 @@
 import { Request, response, Response } from "express";
 import { Configuration, CountryCode, LinkTokenCreateRequest, PlaidApi, PlaidEnvironments, Products } from "plaid";
-import { badRequest, getUserId } from "./controller-utils";
+import { AppDataSource } from "../data-source";
+import { PlaidItem } from "../entity/PlaidItem";
+import { badRequest, getUserId, notFound } from "./controller-utils";
 
 const PLAID_CLIENT_ID = process.env.PLAID_CLIENT_ID;
 const PLAID_SECRET = process.env.PLAID_SECRET;
@@ -42,6 +44,8 @@ const configuration = new Configuration({
 
 const client = new PlaidApi(configuration);
 
+const itemRepository = AppDataSource.getRepository(PlaidItem);
+
 export const createLinkToken = async (req: Request, res: Response) => {
   const userId = getUserId(req);
   if (!userId) { return badRequest(res); }
@@ -57,9 +61,43 @@ export const createLinkToken = async (req: Request, res: Response) => {
   }
 
   if (PLAID_REDIRECT_URI !== '') {
-    linkRequest.redirect_uri = PLAID_REDIRECT_URI;
+    // linkRequest.redirect_uri = PLAID_REDIRECT_URI;
   }
 
   const createRequestToken = await client.linkTokenCreate(linkRequest);
-  response.json(createRequestToken.data);
+  res.send(createRequestToken.data);
+}
+
+export const setAccessToken = async (req: Request, res: Response) => {
+  const userId = getUserId(req);
+  const token = req.body.publicToken;
+  if (!userId) { return badRequest(res); }
+
+  try {
+    const exchangeRes = await client.itemPublicTokenExchange({
+      public_token: token,
+    });
+    const accessToken = exchangeRes.data.access_token;
+    const itemId = exchangeRes.data.item_id;
+
+    itemRepository.create({ userId, accessToken, itemId } as PlaidItem);
+
+    res.json({ publicTokenExchange: 'complete', itemId })
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ publicTokenExchange: 'error'});
+  }
+}
+
+export const getPlaidAccounts = async (req: Request, res: Response) => {
+  const userId = getUserId(req);
+  const itemId = req.params.itemId;
+  if (!userId || !itemId) { return badRequest(res); }
+
+  const item = await itemRepository.findOneBy({ userId, itemId });
+
+  if (!item) { return notFound(res); }
+
+  const accountsResponse = await client.accountsGet({ access_token: item.accessToken });
+  res.send(accountsResponse.data);
 }

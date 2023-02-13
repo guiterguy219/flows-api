@@ -129,7 +129,7 @@ export class Account extends UserResource {
     sendEvent = async () => {
         const redis = await getRedisClient();
 
-        this.invalidateCache();
+        await this.invalidateCache();
         
         await redis.publish(`${this.userId}:account:save`, this.id);
     }
@@ -138,7 +138,7 @@ export class Account extends UserResource {
     sendRemoveEvent = async () => {
         const redis = await getRedisClient();
 
-        this.invalidateCache();
+        await this.invalidateCache();
         
         await redis.publish(`${this.userId}:account:delete`, this.id);
     }
