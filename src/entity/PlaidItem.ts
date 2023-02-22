@@ -1,13 +1,6 @@
-import { Column, Entity } from "typeorm";
+import { Column, Entity, ManyToOne, OneToMany } from "typeorm";
+import { Account } from "./Account";
 import { UserResource } from "./UserResource";
-
-export enum AccountType {
-    CHECKING = 'checking',
-    VIRTUAL = 'virtual',
-    SAVINGS = 'savings',
-    CREDIT = 'credit',
-    EXTERNAL = 'external',
-}
 
 @Entity()
 export class PlaidItem extends UserResource {
@@ -16,4 +9,7 @@ export class PlaidItem extends UserResource {
 
     @Column()
     itemId: string;
+
+    @OneToMany(() => Account, (account) => account.plaidItem)
+    accounts: Account[];
 }

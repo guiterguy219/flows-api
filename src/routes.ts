@@ -47,13 +47,13 @@ const routes: Route[] = [
     },
     {
         method: 'get',
-        path: '/accounts/:accountId',
+        path: '/accounts/:id',
         action: getAccountById,
         middlewares: [checkRead]
     },
     {
         method: 'delete',
-        path: '/accounts/:accountId',
+        path: '/accounts/:id',
         action: deleteAccount,
         middlewares: [checkWrite]
     },
@@ -97,7 +97,7 @@ const routes: Route[] = [
     },
     {
         method: 'get',
-        path: '/item/accounts',
+        path: '/item/accounts/:itemId',
         action: getPlaidAccounts,
         middlewares: [checkRead]
     }

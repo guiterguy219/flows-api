@@ -1,8 +1,9 @@
-import { AfterInsert, AfterLoad, AfterRemove, AfterUpdate, Column, Entity, OneToMany } from "typeorm";
+import { AfterInsert, AfterLoad, AfterRemove, AfterUpdate, BeforeRemove, Column, Entity, ManyToOne, OneToMany } from "typeorm";
 import { Flow } from "./Flow";
 import { UserResource } from "./UserResource";
 import { getPublisher, getRedisClient } from "../clients/redis";
 import { roundAmount, isDue } from "./entity-utils";
+import { PlaidItem } from "./PlaidItem";
 
 export enum AccountType {
     CHECKING = 'checking',
@@ -42,6 +43,17 @@ export class Account extends UserResource {
 
     @OneToMany(() => Flow, (flow) => flow.toAccount)
     inflows: Flow[];
+
+    @ManyToOne(() => PlaidItem, (plaidItem) => plaidItem.accounts, {
+        cascade: true,
+    })
+    plaidItem: PlaidItem;
+
+    @Column({
+        length: 50,
+        nullable: true,
+    })
+    plaidId: string;
 
     accruedBalance: number | null;
     plannedBalance: number | null;
@@ -134,7 +146,7 @@ export class Account extends UserResource {
         await redis.publish(`${this.userId}:account:save`, this.id);
     }
 
-    @AfterRemove()
+    @BeforeRemove()
     sendRemoveEvent = async () => {
         const redis = await getRedisClient();
 

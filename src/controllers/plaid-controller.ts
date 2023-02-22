@@ -1,6 +1,7 @@
-import { Request, response, Response } from "express";
+import { Request, Response } from "express";
 import { Configuration, CountryCode, LinkTokenCreateRequest, PlaidApi, PlaidEnvironments, Products } from "plaid";
 import { AppDataSource } from "../data-source";
+import { Account } from "../entity/Account";
 import { PlaidItem } from "../entity/PlaidItem";
 import { badRequest, getUserId, notFound } from "./controller-utils";
 
@@ -80,12 +81,13 @@ export const setAccessToken = async (req: Request, res: Response) => {
     const accessToken = exchangeRes.data.access_token;
     const itemId = exchangeRes.data.item_id;
 
-    itemRepository.create({ userId, accessToken, itemId } as PlaidItem);
+    let item = itemRepository.create({ userId, accessToken, itemId } as PlaidItem);
+    item = await itemRepository.save(item);
 
-    res.json({ publicTokenExchange: 'complete', itemId })
+    res.json({ publicTokenExchange: 'complete', itemId: item.id })
   } catch (err) {
     console.log(err);
-    res.status(500).json({ publicTokenExchange: 'error'});
+    res.status(500).json({ publicTokenExchange: 'error' });
   }
 }
 
@@ -94,10 +96,26 @@ export const getPlaidAccounts = async (req: Request, res: Response) => {
   const itemId = req.params.itemId;
   if (!userId || !itemId) { return badRequest(res); }
 
-  const item = await itemRepository.findOneBy({ userId, itemId });
+  const item = await itemRepository.findOneBy({ userId, id: itemId });
 
   if (!item) { return notFound(res); }
 
   const accountsResponse = await client.accountsGet({ access_token: item.accessToken });
   res.send(accountsResponse.data);
+}
+
+export const doSyncPlaidAccount = async (userId: string, account: Account): Promise<Account> => {
+  const plaidItemId = (account.plaidItem as PlaidItem)?.id || account.plaidItem.toString();
+  if (!plaidItemId) { return account; }
+
+  const item = await itemRepository.findOneBy({ userId, id: plaidItemId });
+  if (!item) { return account; }
+  
+  const accountsResponse = await client.accountsGet({ access_token: item.accessToken });
+  const accounts = accountsResponse.data.accounts;
+  const plaidAccount = accounts.find((a) => a.account_id === account.plaidId);
+  if (plaidAccount && plaidAccount.balances.available) {
+    account.actualBalance = plaidAccount.balances.available;
+  }
+  return account;
 }

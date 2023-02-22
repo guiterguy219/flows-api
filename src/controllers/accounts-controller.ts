@@ -6,6 +6,7 @@ import { Account, AccountType } from "../entity/Account";
 import { Flow } from "../entity/Flow";
 import { BalanceByDate } from "../entity/interfaces";
 import { badRequest, getUserId, notFound } from "./controller-utils";
+import { doSyncPlaidAccount } from './plaid-controller';
 
 const accountRepository = AppDataSource.getRepository(Account);
 
@@ -26,17 +27,6 @@ export const getAccounts = async (req: Request, res: Response) => {
         }
     });
 
-    let error = false;
-    // await Promise.all(accounts.map((a) => a.enrich())).catch((e) => {
-    //     console.error(e);
-    //     error = true;
-    // });
-
-    if (error) {
-        res.status(500).send();
-        return;
-    }
-
     res.send(accounts);
 }
 
@@ -44,22 +34,48 @@ export const createAccount = async (req: Request, res: Response) => {
     const userId = getUserId(req);
     if (!userId) { return badRequest(res); }
 
-    const newAccount = accountRepository.create({ ...req.body, userId } as Account);
+    let accountData = { ...req.body, userId } as Account;
+
+    const isCreated = req.body.id === undefined;
+    const isPlaidAccount = req.body.plaidItem !== undefined;
+
+    if (isCreated && isPlaidAccount) {
+        accountData = await doSyncPlaidAccount(userId, accountData);
+    }
+
+    const newAccount = accountRepository.create(accountData as Account);
     const savedAccount = await accountRepository.save(newAccount);
-    // await savedAccount.enrich();
+
     res.send(savedAccount);
+}
+
+export const syncAccount = async (req: Request, res: Response) => {
+    const userId = getUserId(req);
+    if (!userId) { return badRequest(res); }
+
+    const { id } = req.params;
+    let  account = await accountRepository.findOneBy({ id, userId });
+    if (!account) { return notFound(res); }
+
+    if (dayjs(account.updatedOn).diff(dayjs(), 'second') <= 5) {
+        return res.status(304).send(account);
+    }
+
+    account = await accountRepository.save(account);
+
+    res.send(await doSyncPlaidAccount(userId, account));
 }
 
 export const deleteAccount = async (req: Request, res: Response) => {
     const userId = getUserId(req);
-    const { accountId } = req.params;
+    if (!userId) { return badRequest(res); }
     
-    if (!userId || !accountId) { return badRequest(res); }
+    const { id } = req.params;
 
     const account = await accountRepository
         .createQueryBuilder('account')
         .addSelect('account.userId')
-        .where('account.id = :accountId', { accountId })
+        .where('account.id = :accountId', { id })
         .andWhere('account.userId = :userId', { userId })
         .getOne();
 
@@ -73,8 +89,8 @@ export const getAccountById = async (req: Request, res: Response) => {
     const userId = getUserId(req);
     if (!userId) { return badRequest(res); }
 
-    const accountId = req.params['accountId'];
-    const account = await accountRepository.findOneBy({ id: accountId, userId });
+    const { id } = req.params;
+    const account = await accountRepository.findOneBy({ id, userId });
     res.send(account);
 }
 
