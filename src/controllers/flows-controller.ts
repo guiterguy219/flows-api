@@ -1,11 +1,7 @@
-import dayjs from "dayjs";
 import { Request, Response } from "express";
-import { access } from "fs";
-import { MoreThan } from "typeorm";
-import { getRedisClient } from "../clients/redis";
 import { AppDataSource } from "../data-source";
 import { Flow } from "../entity/Flow";
-import { asArray, badRequest, getFirstQParam, getUserId, notFound } from "./controller-utils";
+import { asArray, badRequest, getUserId, notFound } from "./controller-utils";
 
 const flowsRepository = AppDataSource.getRepository(Flow);
 
@@ -14,7 +10,7 @@ export const getFlows = async (req: Request, res: Response) => {
     if (!userId) { return badRequest(res); }
 
     const flows = await flowsRepository.find({
-        where: { userId },
+        where: { ownerId: userId },
         relations: {
             fromAccount: true,
             toAccount: true,
@@ -41,11 +37,11 @@ export const deleteFlow = async (req: Request, res: Response) => {
 
     const flow = await flowsRepository
         .createQueryBuilder('flow')
-        .addSelect('flow.userId')
+        .addSelect('flow.ownerId')
         .leftJoinAndSelect('flow.fromAccount', 'fromAccount')
         .leftJoinAndSelect('flow.toAccount', 'toAccount')
         .where('flow.id = :id', { id })
-        .andWhere('flow.userId = :userId', { userId })
+        .andWhere('flow.ownerId = :userId', { userId })
         .getOne();
 
     if (!flow) { return notFound(res); }

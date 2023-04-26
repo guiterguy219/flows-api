@@ -16,11 +16,15 @@ export const getAccounts = async (req: Request, res: Response) => {
 
     const accounts = await accountRepository.find({
         where: {
-            userId
+            ownerId: userId
         },
         relations: {
-            inflows: true,
-            outflows: true
+            inflows: {
+                fromAccount: true
+            },
+            outflows: {
+                toAccount: true
+            }
         },
         order: {
             createdOn: 'ASC'
@@ -54,7 +58,7 @@ export const syncAccount = async (req: Request, res: Response) => {
     if (!userId) { return badRequest(res); }
 
     const { id } = req.params;
-    let  account = await accountRepository.findOneBy({ id, userId });
+    let  account = await accountRepository.findOneBy({ id, ownerId: userId });
     if (!account) { return notFound(res); }
 
     if (dayjs(account.updatedOn).diff(dayjs(), 'second') <= 5) {
@@ -74,9 +78,9 @@ export const deleteAccount = async (req: Request, res: Response) => {
 
     const account = await accountRepository
         .createQueryBuilder('account')
-        .addSelect('account.userId')
+        .addSelect('account.ownerId')
         .where('account.id = :accountId', { id })
-        .andWhere('account.userId = :userId', { userId })
+        .andWhere('account.ownerId = :userId', { userId })
         .getOne();
 
     if (!account) { return notFound(res); }
@@ -90,7 +94,17 @@ export const getAccountById = async (req: Request, res: Response) => {
     if (!userId) { return badRequest(res); }
 
     const { id } = req.params;
-    const account = await accountRepository.findOneBy({ id, userId });
+    const account = await accountRepository.findOne({
+        where: { id, ownerId: userId },
+        relations: {
+            inflows: {
+                fromAccount: true
+            },
+            outflows: {
+                toAccount: true
+            }
+        }
+    });
     res.send(account);
 }
 
@@ -104,7 +118,7 @@ export const getBalances = async (req: Request, res: Response) => {
     const account = await accountRepository.findOne({
         where: {
             id: req.params['accountId'],
-            userId,
+            ownerId: userId,
         },
 
     });

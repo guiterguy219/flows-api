@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { STATUS_CODES } from "http";
 import { Socket } from "socket.io";
 
 export const getUserId = (req: Request | Socket) => {

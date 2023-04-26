@@ -1,12 +1,17 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, JoinColumn, JoinTable, ManyToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { ShareContract } from "./ShareContract";
 
 @Entity()
 export class UserResource {
     @PrimaryGeneratedColumn("uuid")
     id: string;
 
-    @Column({ select: false })
-    userId: string;
+    @Column()
+    ownerId: string;
+
+    @ManyToMany(() => ShareContract, (contract) => contract.resources)
+    @JoinTable()
+    shareContracts: ShareContract[];
 
     @CreateDateColumn()
     createdOn: Date;

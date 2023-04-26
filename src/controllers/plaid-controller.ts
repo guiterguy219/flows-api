@@ -81,7 +81,7 @@ export const setAccessToken = async (req: Request, res: Response) => {
     const accessToken = exchangeRes.data.access_token;
     const itemId = exchangeRes.data.item_id;
 
-    let item = itemRepository.create({ userId, accessToken, itemId } as PlaidItem);
+    let item = itemRepository.create({ ownerId: userId, accessToken, itemId } as PlaidItem);
     item = await itemRepository.save(item);
 
     res.json({ publicTokenExchange: 'complete', itemId: item.id })
@@ -96,7 +96,7 @@ export const getPlaidAccounts = async (req: Request, res: Response) => {
   const itemId = req.params.itemId;
   if (!userId || !itemId) { return badRequest(res); }
 
-  const item = await itemRepository.findOneBy({ userId, id: itemId });
+  const item = await itemRepository.findOneBy({ ownerId: userId, id: itemId });
 
   if (!item) { return notFound(res); }
 
@@ -104,11 +104,11 @@ export const getPlaidAccounts = async (req: Request, res: Response) => {
   res.send(accountsResponse.data);
 }
 
-export const doSyncPlaidAccount = async (userId: string, account: Account): Promise<Account> => {
+export const doSyncPlaidAccount = async (ownerId: string, account: Account): Promise<Account> => {
   const plaidItemId = (account.plaidItem as PlaidItem)?.id || account.plaidItem.toString();
   if (!plaidItemId) { return account; }
 
-  const item = await itemRepository.findOneBy({ userId, id: plaidItemId });
+  const item = await itemRepository.findOneBy({ ownerId, id: plaidItemId });
   if (!item) { return account; }
   
   const accountsResponse = await client.accountsGet({ access_token: item.accessToken });

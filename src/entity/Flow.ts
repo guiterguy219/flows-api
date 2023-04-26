@@ -80,7 +80,10 @@ export class Flow extends UserResource {
 
         await this.invalidateCache();
         
-        await redis.publish(`${this.userId}:flow:save`, this.id);
+        await redis.publish(`${this.ownerId}:flow:save`, this.id);
+        for (const contract of this.shareContracts) {
+            await redis.publish(`${contract.accessorId}:flow:save`, this.id);
+        }
     }
 
     @BeforeRemove()
@@ -89,6 +92,8 @@ export class Flow extends UserResource {
 
         await this.invalidateCache();
 
-        await redis.publish(`${this.userId}:flow:delete`, this.id);
-    }
+        await redis.publish(`${this.ownerId}:flow:delete`, this.id);
+        for (const contract of this.shareContracts) {
+            await redis.publish(`${contract.accessorId}:flow:delete`, this.id);
+        }    }
 }

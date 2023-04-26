@@ -1,8 +1,8 @@
-import { AfterInsert, AfterLoad, AfterRemove, AfterUpdate, BeforeRemove, Column, Entity, ManyToOne, OneToMany } from "typeorm";
+import { AfterInsert, AfterLoad, AfterUpdate, BeforeRemove, Column, Entity, ManyToOne, OneToMany } from "typeorm";
 import { Flow } from "./Flow";
 import { UserResource } from "./UserResource";
-import { getPublisher, getRedisClient } from "../clients/redis";
-import { roundAmount, isDue } from "./entity-utils";
+import { getRedisClient } from "../clients/redis";
+import { roundAmount, isDue, isVirtualFlow } from "./entity-utils";
 import { PlaidItem } from "./PlaidItem";
 
 export enum AccountType {
@@ -112,7 +112,7 @@ export class Account extends UserResource {
                         ...(this.inflows || []),
                         ...(this.outflows || []).map(f => ({...f, amount: -f.amount}))
                     ]
-                        .filter((f) => isDue(f.dateDue) && !f.paid)
+                        .filter((f) => isDue(f.dateDue) && !(f.paid || isVirtualFlow(f)))
                         .reduce((acc, f) => acc + f.amount, 0))
                 redis.set(ACCRUED_KEY, this.accruedBalance);
             }
@@ -143,7 +143,10 @@ export class Account extends UserResource {
 
         await this.invalidateCache();
         
-        await redis.publish(`${this.userId}:account:save`, this.id);
+        await redis.publish(`${this.ownerId}:account:save`, this.id);
+        for (const contract of this.shareContracts) {
+            await redis.publish(`${contract.accessorId}:account:save`, this.id);
+        }
     }
 
     @BeforeRemove()
@@ -152,6 +155,9 @@ export class Account extends UserResource {
 
         await this.invalidateCache();
         
-        await redis.publish(`${this.userId}:account:delete`, this.id);
+        await redis.publish(`${this.ownerId}:account:delete`, this.id);
+        for (const contract of this.shareContracts) {
+            await redis.publish(`${contract.accessorId}:account:delete`, this.id);
+        }
     }
 }
