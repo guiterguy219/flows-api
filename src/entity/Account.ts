@@ -144,9 +144,9 @@ export class Account extends UserResource {
         await this.invalidateCache();
         
         await redis.publish(`${this.ownerId}:account:save`, this.id);
-        for (const contract of this.shareContracts) {
-            await redis.publish(`${contract.accessorId}:account:save`, this.id);
-        }
+        // for (const contract of this.shareContracts) {
+        //     await redis.publish(`${contract.accessorId}:account:save`, this.id);
+        // }
     }
 
     @BeforeRemove()
@@ -156,8 +156,8 @@ export class Account extends UserResource {
         await this.invalidateCache();
         
         await redis.publish(`${this.ownerId}:account:delete`, this.id);
-        for (const contract of this.shareContracts) {
-            await redis.publish(`${contract.accessorId}:account:delete`, this.id);
-        }
+        // for (const contract of this.shareContracts) {
+        //     await redis.publish(`${contract.accessorId}:account:delete`, this.id);
+        // }
     }
 }
