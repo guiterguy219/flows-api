@@ -112,7 +112,7 @@ export class Account extends UserResource {
                         ...(this.inflows || []),
                         ...(this.outflows || []).map(f => ({...f, amount: -f.amount}))
                     ]
-                        .filter((f) => isDue(f.dateDue) && !(f.paid || isVirtualFlow(f)))
+                        .filter((f) => isDue(f.dateDue) && (!f.paid || isVirtualFlow(f)))
                         .reduce((acc, f) => acc + f.amount, 0))
                 redis.set(ACCRUED_KEY, this.accruedBalance);
             }
