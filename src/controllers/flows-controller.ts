@@ -23,7 +23,7 @@ export const createFlow = async (req: Request, res: Response) => {
     const userId = getUserId(req);
     if (!userId) { return badRequest(res); }
 
-    const newFlow = flowsRepository.create({...req.body, userId} as Flow);
+    const newFlow = flowsRepository.create({...req.body, ownerId: userId} as Flow);
     const savedFlow = await flowsRepository.save(newFlow);
 
     res.send(savedFlow);
@@ -76,7 +76,7 @@ const doGetFlowsForAccount = async (req: Request, res: Response, inflows = true,
     }, {});
 
     const whereBase = {
-        userId,
+        ownerId: userId,
         // dateDue: MoreThan(dayjs(getFirstQParam(req, 'startDate')).subtract(1, "days").toDate()),
     }
 
